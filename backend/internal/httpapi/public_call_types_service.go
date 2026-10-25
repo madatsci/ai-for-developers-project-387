@@ -305,6 +305,7 @@ func moscowDayStart(value time.Time) time.Time {
 func buildAvailabilityDays(snapshot availabilitySnapshot, generatedAt time.Time) []generated.AvailabilityDay {
 	days := make([]generated.AvailabilityDay, 0, 14)
 	dayStart := moscowDayStart(generatedAt)
+	durationMinutes := int(snapshot.callType.durationMinutes)
 	for dayOffset := range 14 {
 		date := dayStart.AddDate(0, 0, dayOffset)
 		weekday := int(date.Weekday())
@@ -318,8 +319,8 @@ func buildAvailabilityDays(snapshot availabilitySnapshot, generatedAt time.Time)
 		slots := make([]generated.AvailabilitySlot, 0)
 		seen := make(map[int64]struct{})
 		for _, interval := range available {
-			firstMinute := ((interval.start + 4) / 5) * 5
-			for minute := firstMinute; minute+int(snapshot.callType.durationMinutes) <= interval.end; minute += 5 {
+			firstMinute := ((interval.start + durationMinutes - 1) / durationMinutes) * durationMinutes
+			for minute := firstMinute; minute+durationMinutes <= interval.end; minute += durationMinutes {
 				startsAt := date.Add(time.Duration(minute) * time.Minute)
 				if startsAt.Before(generatedAt) {
 					continue

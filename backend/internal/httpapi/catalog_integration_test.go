@@ -172,7 +172,7 @@ func TestPublicCallTypeAvailabilityUsesMoscowWindowAndAllExistingCalls(t *testin
 		{`DELETE FROM working_hour_intervals WHERE working_hours_id = $1 AND day_of_week = 3`, workingHoursID},
 		{`DELETE FROM schedule_intervals WHERE schedule_id = $1 AND day_of_week = 3`, scheduleID},
 		{`INSERT INTO working_hour_intervals (working_hours_id, day_of_week, start_time, end_time) VALUES
-			($1, 3, '09:00', '12:00'), ($1, 3, '12:00', '13:00')`, workingHoursID},
+			($1, 3, '09:15', '12:00'), ($1, 3, '12:00', '13:00')`, workingHoursID},
 		{`INSERT INTO schedule_intervals (schedule_id, day_of_week, start_time, end_time) VALUES
 			($1, 3, '08:00', '10:30'), ($1, 3, '10:30', '14:00')`, scheduleID},
 	} {
@@ -193,7 +193,7 @@ func TestPublicCallTypeAvailabilityUsesMoscowWindowAndAllExistingCalls(t *testin
 	}
 
 	moscow := time.FixedZone("Europe/Moscow", 3*60*60)
-	now := time.Date(2026, time.October, 21, 10, 2, 34, 123_000_000, moscow)
+	now := time.Date(2026, time.October, 21, 9, 15, 34, 123_000_000, moscow)
 	handler := newIntegrationHandler(pool, newPublicCallTypesService(pool, func() time.Time { return now }), newPublicCallsService(pool, func() time.Time { return now }))
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(
@@ -221,13 +221,13 @@ func TestPublicCallTypeAvailabilityUsesMoscowWindowAndAllExistingCalls(t *testin
 	if body.Days[0].Date != "2026-10-21" || body.Days[13].Date != "2026-11-03" {
 		t.Errorf("date window = %s..%s", body.Days[0].Date, body.Days[13].Date)
 	}
-	if len(body.Days[0].Slots) != 13 {
-		t.Fatalf("today slots = %d, want 13: %+v", len(body.Days[0].Slots), body.Days[0].Slots)
+	if len(body.Days[0].Slots) != 5 {
+		t.Fatalf("today slots = %d, want 5: %+v", len(body.Days[0].Slots), body.Days[0].Slots)
 	}
-	if got := body.Days[0].Slots[0].StartsAt.Format(time.RFC3339); got != "2026-10-21T11:30:00+03:00" {
-		t.Errorf("first slot = %s, want boundary-touching 11:30 slot", got)
+	if got := body.Days[0].Slots[0].StartsAt.Format(time.RFC3339); got != "2026-10-21T09:30:00+03:00" {
+		t.Errorf("first slot = %s, want next half-hour boundary 09:30", got)
 	}
-	if got := body.Days[0].Slots[12].EndsAt.Format(time.RFC3339); got != "2026-10-21T13:00:00+03:00" {
+	if got := body.Days[0].Slots[4].EndsAt.Format(time.RFC3339); got != "2026-10-21T13:00:00+03:00" {
 		t.Errorf("last slot end = %s, want 13:00", got)
 	}
 	if len(body.Days[3].Slots) != 0 || len(body.Days[4].Slots) != 0 {
