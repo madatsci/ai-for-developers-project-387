@@ -6,9 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
-  contents: write
-  pull-requests: write
+  contents: read
   issues: write
 
 jobs:
@@ -49,6 +47,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: openai/gpt-6.1-sol
+          share: false
           use_github_token: true
           prompt: |
             Analyze the raw Lighthouse CI reports in .lighthouseci/ and turn them into

@@ -93,6 +93,27 @@ make test   # Go и frontend-тесты
 make check  # полная CI-эквивалентная проверка
 ```
 
+## GitHub workflows
+
+| Workflow          | Событие                                                                | Модель               | Назначение                                                                                     | Прогоны                                                                                                           |
+| ----------------- | ---------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `CI`              | Push в `main`; pull request                                            | —                    | Полная проверка проекта через `make check`                                                     | [GitHub Actions](https://github.com/madatsci/ai-for-developers-project-387/actions/workflows/ci.yml)              |
+| `hexlet-check`    | Push в любую ветку или тег                                             | —                    | Автоматическая проверка проекта платформой Хекслета                                            | [GitHub Actions](https://github.com/madatsci/ai-for-developers-project-387/actions/workflows/hexlet-check.yml)    |
+| `Lighthouse`      | Ежедневно в 03:00 UTC; ручной запуск                                   | `openai/gpt-6.1-sol` | Проверяет опубликованное приложение, сохраняет Lighthouse-отчёт и создаёт issue с результатами | [GitHub Actions](https://github.com/madatsci/ai-for-developers-project-387/actions/workflows/lighthouse.yml)      |
+| `opencode-review` | PR открыт, обновлён, переоткрыт или переведён в ready for review       | `openai/gpt-6.1-sol` | Ревьюит PR из этого репозитория, созданные людьми                                              | [GitHub Actions](https://github.com/madatsci/ai-for-developers-project-387/actions/workflows/opencode-review.yml) |
+| `Issue Triage`    | Человек открыл issue; аккаунту не менее 30 дней                        | `openai/gpt-6-luna`  | Анализирует новый issue и при наличии полезного ответа добавляет комментарий                   | [GitHub Actions](https://github.com/madatsci/ai-for-developers-project-387/actions/workflows/opencode-triage.yml) |
+| `opencode`        | Доверенный участник начинает новый комментарий с `/oc` или `/opencode` | `openai/gpt-6.1-sol` | Выполняет явно запрошенную агентскую задачу в issue или PR                                     | [GitHub Actions](https://github.com/madatsci/ai-for-developers-project-387/actions/workflows/opencode.yml)        |
+| `Release Please`  | Push в `main`                                                          | —                    | Обновляет release PR и создаёт GitHub Release после его слияния                                | [GitHub Actions](https://github.com/madatsci/ai-for-developers-project-387/actions/workflows/release-please.yml)  |
+
+Для событий комментариев GitHub создаёт запись workflow run на каждый новый
+комментарий. Job `opencode` получает runner только для команды от доверенного
+пользователя; остальные запуски отображаются как пропущенные.
+
+Публичная ссылка на сессию OpenCode создаётся только для интерактивного
+`opencode`, запущенного доверенным участником явной командой `/oc` или
+`/opencode`. Сессии автоматических PR review, issue triage и Lighthouse не
+публикуются: их итог уже доступен в комментарии или созданном issue.
+
 ## Подводные камни
 
 - Production-контейнер слушает `0.0.0.0:$PORT`; локальный API использует
