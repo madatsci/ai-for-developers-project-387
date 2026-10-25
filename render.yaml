@@ -2,7 +2,7 @@
 
 services:
   - type: web
-    name: calendar-of-calls
+    name: calendar-of-calls-387
     runtime: docker
     plan: free
     region: frankfurt
@@ -15,12 +15,3 @@ services:
         fromDatabase:
           name: calendar-of-calls-db
           property: connectionString
-
-databases:
-  - name: calendar-of-calls-db
-    plan: free
-    region: frankfurt
-    postgresMajorVersion: "18"
-    databaseName: calendar
-    user: calendar
-    ipAllowList: []
