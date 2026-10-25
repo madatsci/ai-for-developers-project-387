@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/madatsci/ai-for-developers-project-387/compare/v0.4.1...v0.4.2) (2026-10-25)
+
+
+### Bug Fixes
+
+* reuse shared Render database ([9e970da](https://github.com/madatsci/ai-for-developers-project-387/commit/9e970da1b1a0158cc886a09e830acc67f37eecb7))
+
 ## [0.4.1](https://github.com/madatsci/ai-for-developers-project-387/compare/v0.4.0...v0.4.1) (2026-10-25)
 
 
