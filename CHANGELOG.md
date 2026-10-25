@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.4](https://github.com/madatsci/ai-for-developers-project-387/compare/v0.4.3...v0.4.4) (2026-10-25)
+
+
+### Bug Fixes
+
+* define OpenCode session sharing ([6d5db65](https://github.com/madatsci/ai-for-developers-project-387/commit/6d5db652c4f99909230dbaf24bdf493ada91a561))
+* reduce Lighthouse workflow permissions ([509d399](https://github.com/madatsci/ai-for-developers-project-387/commit/509d399366c4a672759deb0a744c3fe9169ae356))
+* restrict automated workflow execution ([c59c792](https://github.com/madatsci/ai-for-developers-project-387/commit/c59c792604400489892e32e70e8e4c74ccb49a2b))
+* restrict automated workflow triggers ([3b82c67](https://github.com/madatsci/ai-for-developers-project-387/commit/3b82c674aaad24887fcc940b9616a0dcdc328ddc))
+
 ## [0.4.3](https://github.com/madatsci/ai-for-developers-project-387/compare/v0.4.2...v0.4.3) (2026-10-25)
 
 
