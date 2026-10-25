@@ -24,7 +24,37 @@ const availability = ref<AvailabilityResponseBody | null>(null)
 const activeCallTypes = ref<PublicCallTypeSummary[]>([])
 const displayedCallType = computed(() => availability.value?.call_type ?? callType.value)
 const selectedSlot = ref<AvailabilitySlot | null>(null)
+const selectedDate = ref<string | null>(null)
+const datePicker = ref<HTMLElement | null>(null)
+const selectedDay = computed(() =>
+  availability.value?.days.find((day) => day.date === selectedDate.value),
+)
+const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+const calendarMonths = computed(() => {
+  const days = availability.value?.days ?? []
+  return [...new Set(days.map((day) => day.date.slice(0, 7)))].map((month) => {
+    const firstDay = new Date(`${month}-01T00:00:00Z`)
+    const offset = (firstDay.getUTCDay() + 6) % 7
+    const daysInMonth = new Date(
+      Date.UTC(firstDay.getUTCFullYear(), firstDay.getUTCMonth() + 1, 0),
+    ).getUTCDate()
+    return {
+      month,
+      label: new Intl.DateTimeFormat('ru-RU', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(firstDay),
+      offset,
+      days: Array.from({ length: daysInMonth }, (_, index) => {
+        const date = `${month}-${String(index + 1).padStart(2, '0')}`
+        return { date, number: index + 1, day: days.find((day) => day.date === date) }
+      }),
+    }
+  })
+})
 const formHeading = ref<HTMLElement | null>(null)
+const availabilityHeading = ref<HTMLElement | null>(null)
 const submitting = ref(false)
 const submitError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
@@ -110,6 +140,9 @@ async function loadAvailability(slug = typeSlug.value) {
     if (slug !== typeSlug.value) return
     if (result.data) {
       availability.value = result.data
+      if (!result.data.days.some((day) => day.date === selectedDate.value && day.slots.length)) {
+        selectedDate.value = result.data.days.find((day) => day.slots.length)?.date ?? null
+      }
       state.value = 'ready'
       return
     }
@@ -131,6 +164,7 @@ async function loadAvailability(slug = typeSlug.value) {
 async function loadPage() {
   const slug = typeSlug.value
   selectedSlot.value = null
+  selectedDate.value = null
   state.value = 'loading'
   callType.value = null
   availability.value = null
@@ -161,9 +195,24 @@ async function selectSlot(slot: AvailabilitySlot) {
   selectedSlot.value = slot
   submitError.value = ''
   fieldErrors.value = {}
-  if (window.innerWidth >= 640) return
   await nextTick()
   formHeading.value?.focus()
+}
+
+async function focusSelectedDate() {
+  await nextTick()
+  const target =
+    datePicker.value?.querySelector<HTMLElement>('[aria-pressed="true"]') ??
+    availabilityHeading.value
+  target?.focus()
+}
+
+async function backToDateSelection() {
+  if (submitting.value) return
+  selectedSlot.value = null
+  submitError.value = ''
+  fieldErrors.value = {}
+  await focusSelectedDate()
 }
 
 function normalizeEmail(value: string) {
@@ -244,6 +293,7 @@ async function submitBooking() {
       submitError.value = 'Условия изменились. Выберите свободное время ещё раз.'
       selectedSlot.value = null
       await loadAvailability()
+      await focusSelectedDate()
       return
     }
     if (code === 'call_type_unavailable') {
@@ -442,18 +492,40 @@ watch(typeSlug, loadPage, { immediate: true })
         </p>
       </aside>
 
-      <section aria-labelledby="availability-heading">
-        <div class="flex flex-wrap items-end justify-between gap-3">
+      <section
+        :aria-labelledby="selectedSlot ? 'visitor-heading' : 'availability-heading'"
+        class="min-w-0"
+      >
+        <div v-if="!selectedSlot" class="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p class="text-sm font-semibold text-slate-500">Сегодня и следующие 13 дней</p>
-            <h2 id="availability-heading" class="mt-1 text-2xl font-bold">Свободное время</h2>
+            <h2
+              id="availability-heading"
+              ref="availabilityHeading"
+              tabindex="-1"
+              class="mt-1 text-2xl font-bold outline-none"
+            >
+              Свободное время
+            </h2>
           </div>
           <p class="text-sm text-slate-500">Время указано по Москве</p>
         </div>
 
-        <div v-if="state === 'loading'" class="mt-6 grid gap-4 sm:grid-cols-2" aria-busy="true">
+        <p
+          v-if="submitError && !selectedSlot"
+          class="mt-6 border-y border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700"
+          role="alert"
+        >
+          {{ submitError }}
+        </p>
+
+        <div
+          v-if="state === 'loading'"
+          class="mt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]"
+          aria-busy="true"
+        >
           <p class="sr-only">Загружаем свободное время</p>
-          <div v-for="index in 14" :key="index" class="h-36 animate-pulse rounded-xl bg-white" />
+          <div v-for="index in 2" :key="index" class="h-96 animate-pulse rounded-xl bg-white" />
         </div>
 
         <div
@@ -483,57 +555,114 @@ watch(typeSlug, loadPage, { immediate: true })
             </RouterLink>
           </div>
 
-          <p
-            v-if="submitError && !selectedSlot"
-            class="mt-6 border-y border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700"
-            role="alert"
+          <div
+            v-if="!selectedSlot"
+            class="mt-6 grid items-start gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]"
           >
-            {{ submitError }}
-          </p>
-
-          <div class="mt-6 grid gap-4 sm:grid-cols-2">
-            <article
-              v-for="day in availability.days"
-              :key="day.date"
-              data-availability-day
-              class="rounded-xl border border-slate-200 bg-white p-5"
+            <div
+              ref="datePicker"
+              data-date-picker
+              class="min-w-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
             >
-              <h3 class="font-bold capitalize">{{ formatDate(day.date) }}</h3>
-              <p data-availability-date class="mt-1 font-mono text-xs text-slate-400">
-                {{ day.date }}
+              <h3 class="font-bold">1. Выберите дату</h3>
+              <p class="mt-1 text-sm text-slate-500">Доступные даты выделены синим</p>
+              <section
+                v-for="month in calendarMonths"
+                :key="month.month"
+                :aria-label="month.label"
+                class="mt-5"
+              >
+                <h4 class="font-semibold capitalize">{{ month.label }}</h4>
+                <div class="mt-3 grid grid-cols-7 gap-1 text-center">
+                  <span
+                    v-for="weekday in weekdays"
+                    :key="weekday"
+                    class="py-2 text-xs font-semibold text-slate-500"
+                    >{{ weekday }}</span
+                  >
+                  <span v-for="blank in month.offset" :key="`blank-${blank}`" aria-hidden="true" />
+                  <template v-for="cell in month.days" :key="cell.date">
+                    <button
+                      v-if="cell.day"
+                      type="button"
+                      :data-availability-day="cell.date"
+                      :aria-label="formatDate(cell.date)"
+                      :aria-pressed="selectedDate === cell.date"
+                      :disabled="!cell.day.slots.length"
+                      class="min-h-10 rounded-lg text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:text-slate-400"
+                      :class="
+                        selectedDate === cell.date
+                          ? 'bg-blue-700 text-white'
+                          : cell.day.slots.length
+                            ? 'bg-blue-50 text-blue-800 hover:bg-blue-100'
+                            : ''
+                      "
+                      @click="selectedDate = cell.date"
+                    >
+                      {{ cell.number }}
+                    </button>
+                    <span v-else class="py-2.5 text-sm text-slate-300" aria-hidden="true">{{
+                      cell.number
+                    }}</span>
+                  </template>
+                </div>
+              </section>
+            </div>
+            <section
+              aria-labelledby="slots-heading"
+              class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
+            >
+              <h3 id="slots-heading" class="font-bold">2. Выберите время</h3>
+              <p
+                v-if="selectedDay"
+                data-selected-date
+                class="mt-2 text-sm capitalize text-slate-500"
+              >
+                {{ formatDate(selectedDay.date) }}
               </p>
-              <div v-if="day.slots.length" class="mt-4 flex flex-wrap gap-2">
+              <div v-if="selectedDay" class="mt-4 flex flex-col gap-2">
                 <button
-                  v-for="slot in day.slots"
+                  v-for="slot in selectedDay.slots"
                   :key="slot.starts_at"
                   type="button"
                   data-slot
-                  :aria-pressed="selectedSlot?.starts_at === slot.starts_at"
-                  class="rounded-lg px-3 py-2 font-mono text-sm font-semibold transition"
-                  :class="
-                    selectedSlot?.starts_at === slot.starts_at
-                      ? 'bg-slate-950 text-white'
-                      : 'bg-blue-50 text-blue-800 hover:bg-blue-100'
-                  "
+                  class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 font-mono text-sm font-semibold text-blue-800 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
                   @click="selectSlot(slot)"
                 >
                   {{ formatTime(slot.starts_at) }}–{{ formatTime(slot.ends_at) }}
                 </button>
               </div>
               <p v-else class="mt-4 text-sm text-slate-500">Нет свободного времени</p>
-            </article>
+              <p v-if="selectedDay" class="mt-4 text-sm text-slate-500">
+                Выберите время, чтобы перейти к вводу контактных данных.
+              </p>
+            </section>
           </div>
 
           <form
             v-if="selectedSlot"
-            class="mt-10 border-t border-slate-300 pt-8"
+            class="rounded-xl border border-slate-200 bg-white p-5 sm:p-8"
             @submit.prevent="submitBooking"
           >
+            <button
+              type="button"
+              data-back-to-dates
+              :disabled="submitting"
+              class="mb-6 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold hover:border-blue-500 hover:text-blue-700 disabled:opacity-60"
+              @click="backToDateSelection"
+            >
+              ← Назад
+            </button>
             <p class="text-sm font-semibold text-blue-700">
               {{ formatDate(selectedSlot.starts_at.slice(0, 10)) }} ·
               {{ formatTime(selectedSlot.starts_at) }}–{{ formatTime(selectedSlot.ends_at) }}
             </p>
-            <h2 ref="formHeading" tabindex="-1" class="mt-2 text-2xl font-bold outline-none">
+            <h2
+              id="visitor-heading"
+              ref="formHeading"
+              tabindex="-1"
+              class="mt-2 text-2xl font-bold outline-none"
+            >
               Ваши данные
             </h2>
             <div class="mt-6 grid gap-5 sm:grid-cols-2">
