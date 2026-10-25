@@ -148,6 +148,7 @@ describe('BookingView', () => {
     expect(wrapper.findAll('[data-slot]').map((slot) => slot.text())).toEqual(['14:00–14:30'])
     expect(wrapper.text()).toContain('октябрь 2026')
     expect(wrapper.text()).toContain('ноябрь 2026')
+    expect(wrapper.text()).not.toContain('г.')
 
     await wrapper.get('[data-availability-day="2026-11-02"]').trigger('click')
     expect(wrapper.get('[data-availability-day="2026-11-02"]').attributes('aria-pressed')).toBe(
@@ -188,7 +189,8 @@ describe('BookingView', () => {
     })
     const confirmation = wrapper.get('[data-confirmation]').text()
     expect(confirmation).toContain('Звонок на 30 минут')
-    expect(confirmation).toContain('21 октября 2026 г.')
+    expect(confirmation).toContain('21 октября 2026')
+    expect(confirmation).not.toContain('г.')
     expect(confirmation).toContain('11:30–12:00')
     expect(confirmation).toContain('30 минут')
     expect(confirmation).toContain('Йрина')

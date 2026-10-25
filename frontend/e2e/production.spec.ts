@@ -15,7 +15,9 @@ test.describe.serial('production acceptance', () => {
       month: 'long',
       year: 'numeric',
       timeZone: 'Europe/Moscow',
-    }).format(new Date(`${selectedDate}T12:00:00+03:00`))
+    })
+      .format(new Date(`${selectedDate}T12:00:00+03:00`))
+      .replace(/\s*г\.$/u, '')
     const selectedSlot = page.locator('[data-slot]').last()
     const selectedSlotLabel = await selectedSlot.textContent()
     await selectedSlot.click()
