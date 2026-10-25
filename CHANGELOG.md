@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.3](https://github.com/madatsci/ai-for-developers-project-387/compare/v0.4.2...v0.4.3) (2026-10-25)
+
+
+### Bug Fixes
+
+* allow Chrome on GitHub runner ([63e7411](https://github.com/madatsci/ai-for-developers-project-387/commit/63e7411763ebc71ed4a836185a15715b06c69aa4))
+* audit the deployed application ([a588acc](https://github.com/madatsci/ai-for-developers-project-387/commit/a588acca28a13480dcb32c1a62baa4295522f31a))
+* preserve Lighthouse reports as artifacts ([90a4b96](https://github.com/madatsci/ai-for-developers-project-387/commit/90a4b968dff4ac5b30920f89823be3678e64124f))
+
 ## [0.4.2](https://github.com/madatsci/ai-for-developers-project-387/compare/v0.4.1...v0.4.2) (2026-10-25)
 
 
