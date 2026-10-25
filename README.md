@@ -114,6 +114,21 @@ make check  # полная CI-эквивалентная проверка
 `/opencode`. Сессии автоматических PR review, issue triage и Lighthouse не
 публикуются: их итог уже доступен в комментарии или созданном issue.
 
+Автоматическое ревью запускается по событиям pull request, но выполняется
+только для PR из веток этого же репозитория, созданных не ботом. Поэтому PR,
+созданные ботом или из fork, будут пропущены; условия запуска заданы в
+[workflow ревью](.github/workflows/opencode-review.yml).
+
+Lighthouse можно запустить вручную на странице workflow:
+[Actions → Lighthouse → Run workflow](https://github.com/madatsci/ai-for-developers-project-387/actions/workflows/lighthouse.yml).
+Подробнее о [ручном запуске workflow](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow).
+Требуется repository variable `APP_URL` с адресом опубликованного приложения.
+Если переменная не задана, сбор завершится с явной ошибкой до запуска Lighthouse.
+После успешного сбора исходные отчёты доступны в артефакте
+[`lighthouse-reports`](https://docs.github.com/actions/using-workflows/storing-workflow-data-as-artifacts);
+затем workflow создаёт issue с результатами. Подробности — в
+[workflow Lighthouse](.github/workflows/lighthouse.yml).
+
 ## Подводные камни
 
 - Production-контейнер слушает `0.0.0.0:$PORT`; локальный API использует
