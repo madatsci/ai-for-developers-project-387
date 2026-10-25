@@ -613,6 +613,9 @@ watch(typeSlug, loadPage, { immediate: true })
               class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
             >
               <h3 id="slots-heading" class="font-bold">2. Выберите время</h3>
+              <p v-if="selectedDay" class="mt-1 text-sm text-slate-500">
+                Выберите время, чтобы перейти к вводу контактных данных.
+              </p>
               <p
                 v-if="selectedDay"
                 data-selected-date
@@ -633,9 +636,6 @@ watch(typeSlug, loadPage, { immediate: true })
                 </button>
               </div>
               <p v-else class="mt-4 text-sm text-slate-500">Нет свободного времени</p>
-              <p v-if="selectedDay" class="mt-4 text-sm text-slate-500">
-                Выберите время, чтобы перейти к вводу контактных данных.
-              </p>
             </section>
           </div>
 
