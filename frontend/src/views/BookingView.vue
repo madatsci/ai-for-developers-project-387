@@ -25,6 +25,7 @@ const activeCallTypes = ref<PublicCallTypeSummary[]>([])
 const displayedCallType = computed(() => availability.value?.call_type ?? callType.value)
 const selectedSlot = ref<AvailabilitySlot | null>(null)
 const selectedDate = ref<string | null>(null)
+const visibleMonth = ref('')
 const datePicker = ref<HTMLElement | null>(null)
 const selectedDay = computed(() =>
   availability.value?.days.find((day) => day.date === selectedDate.value),
@@ -55,6 +56,16 @@ const calendarMonths = computed(() => {
     }
   })
 })
+const visibleMonthIndex = computed(() =>
+  calendarMonths.value.findIndex((month) => month.month === visibleMonth.value),
+)
+const displayedMonth = computed(() => calendarMonths.value[visibleMonthIndex.value])
+
+function changeMonth(direction: number) {
+  const month = calendarMonths.value[visibleMonthIndex.value + direction]
+  if (month) visibleMonth.value = month.month
+}
+
 const formHeading = ref<HTMLElement | null>(null)
 const availabilityHeading = ref<HTMLElement | null>(null)
 const submitting = ref(false)
@@ -145,6 +156,7 @@ async function loadAvailability(slug = typeSlug.value) {
       if (!result.data.days.some((day) => day.date === selectedDate.value && day.slots.length)) {
         selectedDate.value = result.data.days.find((day) => day.slots.length)?.date ?? null
       }
+      visibleMonth.value = selectedDate.value?.slice(0, 7) ?? calendarMonths.value[0]?.month ?? ''
       state.value = 'ready'
       return
     }
@@ -202,6 +214,7 @@ async function selectSlot(slot: AvailabilitySlot) {
 }
 
 async function focusSelectedDate() {
+  if (selectedDate.value) visibleMonth.value = selectedDate.value.slice(0, 7)
   await nextTick()
   const target =
     datePicker.value?.querySelector<HTMLElement>('[aria-pressed="true"]') ??
@@ -570,13 +583,34 @@ watch(typeSlug, loadPage, { immediate: true })
             >
               <h3 class="font-bold">1. Выберите дату</h3>
               <p class="mt-1 text-sm text-slate-500">Доступные даты выделены синим</p>
-              <section
-                v-for="month in calendarMonths"
-                :key="month.month"
-                :aria-label="month.label"
-                class="mt-5"
-              >
-                <h4 class="font-semibold capitalize">{{ month.label }}</h4>
+              <section v-if="displayedMonth" :aria-label="displayedMonth.label" class="mt-5">
+                <div class="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    aria-label="Предыдущий месяц"
+                    :disabled="visibleMonthIndex <= 0"
+                    class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-lg hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent"
+                    @click="changeMonth(-1)"
+                  >
+                    <span aria-hidden="true">←</span>
+                  </button>
+                  <h4
+                    aria-live="polite"
+                    aria-atomic="true"
+                    class="text-center font-semibold capitalize"
+                  >
+                    {{ displayedMonth.label }}
+                  </h4>
+                  <button
+                    type="button"
+                    aria-label="Следующий месяц"
+                    :disabled="visibleMonthIndex >= calendarMonths.length - 1"
+                    class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-lg hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-default disabled:text-slate-300 disabled:hover:bg-transparent"
+                    @click="changeMonth(1)"
+                  >
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
                 <div class="mt-3 grid grid-cols-7 gap-1 text-center">
                   <span
                     v-for="weekday in weekdays"
@@ -584,8 +618,12 @@ watch(typeSlug, loadPage, { immediate: true })
                     class="py-2 text-xs font-semibold text-slate-500"
                     >{{ weekday }}</span
                   >
-                  <span v-for="blank in month.offset" :key="`blank-${blank}`" aria-hidden="true" />
-                  <template v-for="cell in month.days" :key="cell.date">
+                  <span
+                    v-for="blank in displayedMonth.offset"
+                    :key="`blank-${blank}`"
+                    aria-hidden="true"
+                  />
+                  <template v-for="cell in displayedMonth.days" :key="cell.date">
                     <button
                       v-if="cell.day"
                       type="button"

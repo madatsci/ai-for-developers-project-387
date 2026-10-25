@@ -5,7 +5,7 @@ test.describe.serial('production acceptance', () => {
     await page.goto('/booking')
     await page.getByRole('link', { name: /Звонок на 15 минут/ }).click()
 
-    await expect(page.locator('[data-availability-day]')).toHaveCount(14)
+    await expect(page.locator('[data-availability-day][aria-pressed="true"]')).toBeVisible()
     const selectedDate = (await page
       .locator('[data-availability-day][aria-pressed="true"]')
       .getAttribute('data-availability-day'))!
@@ -88,10 +88,13 @@ test.describe.serial('production acceptance', () => {
 
     await page.goto('/booking')
     await page.getByRole('link', { name: /Production E2E обновлён/ }).click()
-    await expect(page.locator('[data-availability-day]')).toHaveCount(14)
+    await expect(page.locator('[data-availability-day][aria-pressed="true"]')).toBeVisible()
     const mondayWithSlots = page
       .getByRole('button', { name: /понедельник/i, disabled: false })
       .first()
+    if ((await mondayWithSlots.count()) === 0) {
+      await page.getByRole('button', { name: 'Следующий месяц' }).click()
+    }
     await expect(mondayWithSlots).toBeVisible()
     await mondayWithSlots.click()
     await expect(page.locator('[data-slot]').first()).toHaveText('10:30–10:45')
@@ -173,6 +176,15 @@ for (const viewport of [
     await page.getByLabel('Дополнительная информация').fill('Сохранённый комментарий')
     await page.getByRole('button', { name: 'Назад' }).click()
     await expect(firstDate).toBeFocused()
+    await expect(page.getByRole('button', { name: 'Предыдущий месяц' })).toBeDisabled()
+    await expect(nextDate).toHaveCount(0)
+    await page.getByRole('button', { name: 'Следующий месяц' }).click()
+    await expect(page.getByRole('heading', { name: 'январь 2027' })).toBeVisible()
+    await expect(firstDate).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Следующий месяц' })).toBeDisabled()
+    await page.getByRole('button', { name: 'Предыдущий месяц' }).click()
+    await expect(firstDate).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Следующий месяц' }).click()
     await nextDate.click()
     await page.locator('[data-slot]').click()
     await expect(heading).toBeFocused()
