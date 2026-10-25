@@ -6,13 +6,9 @@ test.describe.serial('production acceptance', () => {
     await page.getByRole('link', { name: /Звонок на 15 минут/ }).click()
 
     await expect(page.locator('[data-availability-day]')).toHaveCount(14)
-    const firstDayWithSlots = page
-      .locator('[data-availability-day]')
-      .filter({ has: page.locator('[data-slot]') })
-      .first()
-    const selectedDate = (await firstDayWithSlots
-      .locator('[data-availability-date]')
-      .textContent())!.trim()
+    const selectedDate = (await page
+      .locator('[data-availability-day][aria-pressed="true"]')
+      .getAttribute('data-availability-day'))!
     const selectedDateLabel = new Intl.DateTimeFormat('ru-RU', {
       weekday: 'long',
       day: 'numeric',
@@ -20,7 +16,7 @@ test.describe.serial('production acceptance', () => {
       year: 'numeric',
       timeZone: 'Europe/Moscow',
     }).format(new Date(`${selectedDate}T12:00:00+03:00`))
-    const selectedSlot = firstDayWithSlots.locator('[data-slot]').last()
+    const selectedSlot = page.locator('[data-slot]').last()
     const selectedSlotLabel = await selectedSlot.textContent()
     await selectedSlot.click()
     await page.getByLabel('Имя').fill('Посетитель E2E')
@@ -92,13 +88,12 @@ test.describe.serial('production acceptance', () => {
     await page.getByRole('link', { name: /Production E2E обновлён/ }).click()
     await expect(page.locator('[data-availability-day]')).toHaveCount(14)
     const mondayWithSlots = page
-      .locator('[data-availability-day]')
-      .filter({ hasText: /понедельник/i })
-      .filter({ has: page.locator('[data-slot]') })
+      .getByRole('button', { name: /понедельник/i, disabled: false })
       .first()
     await expect(mondayWithSlots).toBeVisible()
-    await expect(mondayWithSlots.locator('[data-slot]').first()).toHaveText('10:30–10:45')
-    await mondayWithSlots.locator('[data-slot]').first().click()
+    await mondayWithSlots.click()
+    await expect(page.locator('[data-slot]').first()).toHaveText('10:30–10:45')
+    await page.locator('[data-slot]').first().click()
     await page.getByLabel('Имя').fill('Администратор E2E')
     await page.getByLabel('Email').fill('admin.e2e@example.com')
     await page.getByRole('button', { name: 'Забронировать звонок' }).click()
@@ -117,3 +112,82 @@ test.describe.serial('production acceptance', () => {
     await expect(page.getByText('admin.e2e@example.com').first()).toBeVisible()
   })
 })
+
+for (const viewport of [
+  { width: 1280, height: 900 },
+  { width: 375, height: 812 },
+]) {
+  test(`booking steps preserve visitor data at width ${viewport.width}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize(viewport)
+    await page.route('**/api/v1/public/call-types/zvonok-na-30-minut/availability', (route) =>
+      route.fulfill({
+        json: {
+          generated_at: '2026-12-30T10:00:00+03:00',
+          timezone: 'Europe/Moscow',
+          call_type: {
+            slug: 'zvonok-na-30-minut',
+            name: 'Звонок на 30 минут',
+            description: 'Обсудим задачу',
+            duration_minutes: 30,
+            call_type_version: '1',
+          },
+          days: Array.from({ length: 14 }, (_, index) => {
+            const date = new Date(Date.UTC(2026, 11, 30 + index)).toISOString().slice(0, 10)
+            return {
+              date,
+              slots:
+                index === 1 || index === 2
+                  ? [
+                      {
+                        starts_at: `${date}T11:00:00+03:00`,
+                        ends_at: `${date}T11:30:00+03:00`,
+                      },
+                    ]
+                  : [],
+            }
+          }),
+        },
+      }),
+    )
+    await page.goto('/booking/zvonok-na-30-minut')
+    const firstDate = page.locator('[data-availability-day="2026-12-31"]')
+    const nextDate = page.locator('[data-availability-day="2027-01-01"]')
+    await expect(firstDate).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('[data-availability-day="2026-12-30"]')).toBeDisabled()
+    await page.screenshot({ path: testInfo.outputPath('calendar.png'), fullPage: true })
+    await testInfo.attach('calendar', {
+      path: testInfo.outputPath('calendar.png'),
+      contentType: 'image/png',
+    })
+    await page.locator('[data-slot]').click()
+    await expect(page.locator('[data-date-picker]')).toBeHidden()
+    const heading = page.getByRole('heading', { name: 'Ваши данные' })
+    await expect(heading).toBeFocused()
+    await expect(heading).toBeInViewport()
+    await page.getByLabel('Имя', { exact: true }).fill('Анна')
+    await page.getByLabel('Email', { exact: true }).fill('anna@example.com')
+    await page.getByLabel('Дополнительная информация').fill('Сохранённый комментарий')
+    await page.getByRole('button', { name: 'Назад' }).click()
+    await expect(firstDate).toBeFocused()
+    await nextDate.click()
+    await page.locator('[data-slot]').click()
+    await expect(heading).toBeFocused()
+    await expect(heading).toBeInViewport()
+    await expect(page.locator('form')).toContainText('1 января · 11:00–11:30')
+    await expect(page.getByLabel('Имя', { exact: true })).toHaveValue('Анна')
+    await expect(page.getByLabel('Email', { exact: true })).toHaveValue('anna@example.com')
+    await expect(page.getByLabel('Дополнительная информация')).toHaveValue(
+      'Сохранённый комментарий',
+    )
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath('contact-form.png'), fullPage: true })
+    await testInfo.attach('contact-form', {
+      path: testInfo.outputPath('contact-form.png'),
+      contentType: 'image/png',
+    })
+  })
+}

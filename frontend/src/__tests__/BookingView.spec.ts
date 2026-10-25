@@ -123,6 +123,39 @@ describe('BookingView', () => {
     listPublicCallTypes.mockResolvedValue({ data: { items: activeTypes } })
   })
 
+  it('selects the first available date and only shows slots for the chosen date', async () => {
+    const snapshot = availability(false)
+    snapshot.days[2]!.slots = [
+      {
+        starts_at: '2026-10-23T14:00:00+03:00',
+        ends_at: '2026-10-23T14:30:00+03:00',
+      },
+    ]
+    snapshot.days[12]!.slots = [
+      {
+        starts_at: '2026-11-02T10:00:00+03:00',
+        ends_at: '2026-11-02T10:30:00+03:00',
+      },
+    ]
+    getPublicCallTypeAvailability.mockResolvedValueOnce({ data: snapshot })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-availability-day="2026-10-21"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-availability-day="2026-10-23"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    expect(wrapper.findAll('[data-slot]').map((slot) => slot.text())).toEqual(['14:00–14:30'])
+    expect(wrapper.text()).toContain('октябрь 2026')
+    expect(wrapper.text()).toContain('ноябрь 2026')
+
+    await wrapper.get('[data-availability-day="2026-11-02"]').trigger('click')
+    expect(wrapper.get('[data-availability-day="2026-11-02"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    expect(wrapper.findAll('[data-slot]').map((slot) => slot.text())).toEqual(['10:00–10:30'])
+  })
+
   it('books a selected slot through the generated SDK and shows the immutable confirmation', async () => {
     getPublicCallTypeAvailability.mockResolvedValueOnce({ data: availability() })
     createCall.mockResolvedValueOnce({ data: createdCall })
@@ -167,6 +200,40 @@ describe('BookingView', () => {
       expect.objectContaining({ visitor_name: 'Йрина' }),
     )
     expect(sessionStorage.getItem('booking-draft')).toBeNull()
+  })
+
+  it('replaces date selection with the form and preserves a partial draft when going back', async () => {
+    const snapshot = availability()
+    snapshot.days[12]!.slots = [
+      {
+        starts_at: '2026-11-02T10:00:00+03:00',
+        ends_at: '2026-11-02T10:30:00+03:00',
+      },
+    ]
+    getPublicCallTypeAvailability.mockResolvedValueOnce({ data: snapshot })
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.get('[data-slot]').trigger('click')
+    expect(wrapper.find('[data-date-picker]').exists()).toBe(false)
+    expect(wrapper.find('[data-slot]').exists()).toBe(false)
+    expect(wrapper.get('form').text()).toContain('21 октября · 11:30–12:00')
+    await wrapper.get('input[name="visitor_name"]').setValue('Ан')
+    await wrapper.get('textarea[name="visitor_notes"]').setValue('Ещё не законченный комментарий')
+    await wrapper.get('[data-back-to-dates]').trigger('click')
+    expect(wrapper.find('form').exists()).toBe(false)
+    expect(wrapper.get('[data-availability-day="2026-10-21"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+
+    await wrapper.get('[data-availability-day="2026-11-02"]').trigger('click')
+    await wrapper.get('[data-slot]').trigger('click')
+    expect(wrapper.get('input[name="visitor_name"]').element).toHaveProperty('value', 'Ан')
+    expect(wrapper.get('input[name="visitor_email"]').element).toHaveProperty('value', '')
+    expect(wrapper.get('textarea[name="visitor_notes"]').element).toHaveProperty(
+      'value',
+      'Ещё не законченный комментарий',
+    )
+    expect(wrapper.get('form').text()).toContain('2 ноября · 10:00–10:30')
   })
 
   it('reuses the idempotency key for a network retry and replaces it after input changes', async () => {
@@ -265,6 +332,7 @@ describe('BookingView', () => {
     await flushPromises()
     expect(createCall.mock.calls[1]?.[0].headers['Idempotency-Key']).toBe(firstKey)
 
+    await wrapper.get('[data-back-to-dates]').trigger('click')
     await wrapper.findAll('[data-slot]')[1]?.trigger('click')
     await wrapper.get('form').trigger('submit')
     await flushPromises()
@@ -369,6 +437,9 @@ describe('BookingView', () => {
 
     expect(createCall).toHaveBeenCalledTimes(1)
     expect(wrapper.get('button[type="submit"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-back-to-dates]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[data-back-to-dates]').trigger('click')
+    expect(wrapper.find('form').exists()).toBe(true)
 
     resolveCreateCall({ data: createdCall })
     await flushPromises()
@@ -413,6 +484,57 @@ describe('BookingView', () => {
     },
   )
 
+  it.each([true, false])(
+    'refreshes the chosen date after a conflict (still available: %s)',
+    async (stillAvailable) => {
+      const initial = availability()
+      initial.days[12]!.slots = [
+        {
+          starts_at: '2026-11-02T10:00:00+03:00',
+          ends_at: '2026-11-02T10:30:00+03:00',
+        },
+      ]
+      const refreshed = structuredClone(initial)
+      if (!stillAvailable) refreshed.days[12]!.slots = []
+      getPublicCallTypeAvailability
+        .mockResolvedValueOnce({ data: initial })
+        .mockResolvedValueOnce({ data: refreshed })
+      createCall.mockResolvedValueOnce({
+        error: { code: 'slot_unavailable' },
+        response: { status: 409 },
+      })
+      const wrapper = mount(BookingView, {
+        attachTo: document.body,
+        global: { stubs: { RouterLink: RouterLinkStub } },
+      })
+      try {
+        await flushPromises()
+        await wrapper.get('[data-availability-day="2026-11-02"]').trigger('click')
+        await wrapper.get('[data-slot]').trigger('click')
+        await wrapper.get('input[name="visitor_name"]').setValue('Анна')
+        await wrapper.get('input[name="visitor_email"]').setValue('anna@example.com')
+        await wrapper.get('form').trigger('submit')
+        await flushPromises()
+
+        const chosenDate = stillAvailable ? '2026-11-02' : '2026-10-21'
+        expect(
+          wrapper.get(`[data-availability-day="${chosenDate}"]`).attributes('aria-pressed'),
+        ).toBe('true')
+        expect(document.activeElement).toBe(
+          wrapper.get(`[data-availability-day="${chosenDate}"]`).element,
+        )
+        expect(wrapper.get('[role="alert"]').text()).toContain('Условия изменились')
+        await wrapper.get('[data-slot]').trigger('click')
+        expect(wrapper.get('input[name="visitor_email"]').element).toHaveProperty(
+          'value',
+          'anna@example.com',
+        )
+      } finally {
+        wrapper.unmount()
+      }
+    },
+  )
+
   it('keeps the selected slot and visitor data after a network error', async () => {
     getPublicCallTypeAvailability.mockResolvedValueOnce({ data: availability() })
     createCall.mockRejectedValueOnce(new Error('network unavailable'))
@@ -426,7 +548,8 @@ describe('BookingView', () => {
     await wrapper.get('form').trigger('submit')
     await flushPromises()
 
-    expect(wrapper.get('[data-slot]').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('[data-date-picker]').exists()).toBe(false)
+    expect(wrapper.get('form').text()).toContain('21 октября · 11:30–12:00')
     expect(wrapper.get('input[name="visitor_name"]').element).toHaveProperty('value', 'Анна')
     expect(wrapper.get('input[name="visitor_email"]').element).toHaveProperty(
       'value',
@@ -439,37 +562,33 @@ describe('BookingView', () => {
     expect(wrapper.get('[role="alert"]').text()).toContain('Повторите отправку')
   })
 
-  it('focuses the form heading only after mobile slot selection', async () => {
-    getPublicCallTypeAvailability.mockResolvedValue({ data: availability() })
-    const originalWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth')
+  it.each([375, 1024])(
+    'focuses the form heading and restores the selected date at width %s',
+    async (width) => {
+      getPublicCallTypeAvailability.mockResolvedValue({ data: availability() })
+      const originalWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth')
 
-    try {
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 375 })
-      const mobileView = mount(BookingView, {
-        attachTo: document.body,
-        global: { stubs: { RouterLink: RouterLinkStub } },
-      })
-      await flushPromises()
-      await mobileView.get('[data-slot]').trigger('click')
+      try {
+        Object.defineProperty(window, 'innerWidth', { configurable: true, value: width })
+        const mobileView = mount(BookingView, {
+          attachTo: document.body,
+          global: { stubs: { RouterLink: RouterLinkStub } },
+        })
+        await flushPromises()
+        await mobileView.get('[data-slot]').trigger('click')
 
-      expect(document.activeElement).toBe(mobileView.get('h2[tabindex="-1"]').element)
-      expect(document.activeElement?.tagName).not.toBe('INPUT')
-      mobileView.unmount()
-
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 })
-      const desktopView = mount(BookingView, {
-        attachTo: document.body,
-        global: { stubs: { RouterLink: RouterLinkStub } },
-      })
-      await flushPromises()
-      await desktopView.get('[data-slot]').trigger('click')
-
-      expect(document.activeElement).not.toBe(desktopView.get('h2[tabindex="-1"]').element)
-      desktopView.unmount()
-    } finally {
-      if (originalWidth) Object.defineProperty(window, 'innerWidth', originalWidth)
-    }
-  })
+        expect(document.activeElement).toBe(mobileView.get('h2[tabindex="-1"]').element)
+        expect(document.activeElement?.tagName).not.toBe('INPUT')
+        await mobileView.get('[data-back-to-dates]').trigger('click')
+        expect(document.activeElement).toBe(
+          mobileView.get('[data-availability-day="2026-10-21"]').element,
+        )
+        mobileView.unmount()
+      } finally {
+        if (originalWidth) Object.defineProperty(window, 'innerWidth', originalWidth)
+      }
+    },
+  )
 
   it('restores the confirmation in the same tab without exposing the internal id', async () => {
     sessionStorage.setItem('booking-confirmation', JSON.stringify(createdCall))
@@ -553,6 +672,12 @@ describe('BookingView', () => {
     expect(getPublicCallTypeAvailability).toHaveBeenCalledTimes(2)
     expect(wrapper.findAll('[data-availability-day]')).toHaveLength(14)
     expect(wrapper.text()).toContain('В ближайшие 14 дней свободного времени нет')
+    expect(
+      wrapper
+        .findAll('[data-availability-day]')
+        .every((day) => day.attributes('disabled') !== undefined),
+    ).toBe(true)
+    expect(wrapper.find('[data-slot]').exists()).toBe(false)
   })
 
   it.each([
