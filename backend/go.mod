@@ -1,4 +1,4 @@
-module github.com/madatsci/ai-for-developers-project-386/backend
+module github.com/madatsci/ai-for-developers-project-387/backend
 
 go 1.26.0
 

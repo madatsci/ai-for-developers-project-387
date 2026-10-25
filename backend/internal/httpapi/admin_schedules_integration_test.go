@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/httpapi/generated"
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/storage"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/httpapi/generated"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/storage"
 )
 
 func TestAdminSchedulesListsAndCreatesCompleteWeeks(t *testing.T) {

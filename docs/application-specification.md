@@ -822,15 +822,6 @@ Unicode-символов и ищет по имени, email и коммента�
 - пользовательская сортировка и фильтр журнала по дате;
 - переход к произвольным будущим 14-дневным периодам.
 
-## 13. Источники решений
+## 13. История решений
 
-- [Проверить обязательные требования исходного задания Хекслета](https://github.com/madatsci/ai-for-developers-project-386/issues/5)
-- [Уточнить правила типов звонков](https://github.com/madatsci/ai-for-developers-project-386/issues/6)
-- [Уточнить модель расписаний и недельной доступности организатора](https://github.com/madatsci/ai-for-developers-project-386/issues/7)
-- [Определить календарное окно и алгоритм свободных слотов](https://github.com/madatsci/ai-for-developers-project-386/issues/8)
-- [Определить контракт создания бронирования](https://github.com/madatsci/ai-for-developers-project-386/issues/9)
-- [Спроектировать публичный поток бронирования](https://github.com/madatsci/ai-for-developers-project-386/issues/10)
-- [Спроектировать управление типами звонков и расписаниями](https://github.com/madatsci/ai-for-developers-project-386/issues/11)
-- [Спроектировать список звонков организатора](https://github.com/madatsci/ai-for-developers-project-386/issues/12)
-- [Определить модель данных и доменные инварианты](https://github.com/madatsci/ai-for-developers-project-386/issues/13)
-- [Определить HTTP API приложения](https://github.com/madatsci/ai-for-developers-project-386/issues/14)
+Принятые продуктовые и технические решения сведены в эту спецификацию.
