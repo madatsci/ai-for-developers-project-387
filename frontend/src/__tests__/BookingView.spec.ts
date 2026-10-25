@@ -147,14 +147,59 @@ describe('BookingView', () => {
     )
     expect(wrapper.findAll('[data-slot]').map((slot) => slot.text())).toEqual(['14:00–14:30'])
     expect(wrapper.text()).toContain('октябрь 2026')
-    expect(wrapper.text()).toContain('ноябрь 2026')
+    expect(wrapper.text()).not.toContain('ноябрь 2026')
     expect(wrapper.text()).not.toContain('г.')
+    expect(wrapper.get('[aria-label="Предыдущий месяц"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('[data-availability-day="2026-11-02"]').exists()).toBe(false)
 
+    await wrapper.get('[aria-label="Следующий месяц"]').trigger('click')
+    expect(wrapper.text()).toContain('ноябрь 2026')
+    expect(wrapper.text()).not.toContain('октябрь 2026')
+    expect(wrapper.get('[aria-label="Следующий месяц"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.findAll('[data-slot]').map((slot) => slot.text())).toEqual(['14:00–14:30'])
     await wrapper.get('[data-availability-day="2026-11-02"]').trigger('click')
     expect(wrapper.get('[data-availability-day="2026-11-02"]').attributes('aria-pressed')).toBe(
       'true',
     )
     expect(wrapper.findAll('[data-slot]').map((slot) => slot.text())).toEqual(['10:00–10:30'])
+
+    await wrapper.get('[aria-label="Предыдущий месяц"]').trigger('click')
+    expect(wrapper.text()).toContain('октябрь 2026')
+    expect(wrapper.text()).not.toContain('ноябрь 2026')
+    await wrapper.get('[aria-label="Следующий месяц"]').trigger('click')
+    expect(wrapper.get('[data-availability-day="2026-11-02"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+  })
+
+  it('opens the month of the first available date', async () => {
+    const snapshot = availability(false)
+    snapshot.days[12]!.slots = [
+      {
+        starts_at: '2026-11-02T10:00:00+03:00',
+        ends_at: '2026-11-02T10:30:00+03:00',
+      },
+    ]
+    getPublicCallTypeAvailability.mockResolvedValueOnce({ data: snapshot })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[data-availability-day="2026-11-02"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    expect(wrapper.text()).not.toContain('октябрь 2026')
+    expect(wrapper.findAll('[data-slot]').map((slot) => slot.text())).toEqual(['10:00–10:30'])
+  })
+
+  it('disables both month arrows when the availability fits in one month', async () => {
+    const snapshot = availability()
+    snapshot.days = snapshot.days.slice(0, 11)
+    getPublicCallTypeAvailability.mockResolvedValueOnce({ data: snapshot })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Предыдущий месяц"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[aria-label="Следующий месяц"]').attributes('disabled')).toBeDefined()
   })
 
   it('books a selected slot through the generated SDK and shows the immutable confirmation', async () => {
@@ -227,6 +272,7 @@ describe('BookingView', () => {
       'true',
     )
 
+    await wrapper.get('[aria-label="Следующий месяц"]').trigger('click')
     await wrapper.get('[data-availability-day="2026-11-02"]').trigger('click')
     await wrapper.get('[data-slot]').trigger('click')
     expect(wrapper.get('input[name="visitor_name"]').element).toHaveProperty('value', 'Ан')
@@ -236,6 +282,10 @@ describe('BookingView', () => {
       'Ещё не законченный комментарий',
     )
     expect(wrapper.get('form').text()).toContain('2 ноября · 10:00–10:30')
+    await wrapper.get('[data-back-to-dates]').trigger('click')
+    expect(wrapper.get('[data-availability-day="2026-11-02"]').attributes('aria-pressed')).toBe(
+      'true',
+    )
   })
 
   it('reuses the idempotency key for a network retry and replaces it after input changes', async () => {
@@ -511,6 +561,7 @@ describe('BookingView', () => {
       })
       try {
         await flushPromises()
+        await wrapper.get('[aria-label="Следующий месяц"]').trigger('click')
         await wrapper.get('[data-availability-day="2026-11-02"]').trigger('click')
         await wrapper.get('[data-slot]').trigger('click')
         await wrapper.get('input[name="visitor_name"]').setValue('Анна')
@@ -615,10 +666,12 @@ describe('BookingView', () => {
 
     expect(sessionStorage.getItem('booking-confirmation')).toBeNull()
     expect(wrapper.find('[data-confirmation]').exists()).toBe(false)
-    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(14)
+    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(11)
+    await wrapper.get('[aria-label="Следующий месяц"]').trigger('click')
+    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(3)
   })
 
-  it('keeps a scheduler skeleton until it renders all 14 dates and their slots', async () => {
+  it('keeps a scheduler skeleton until it renders the first month and its slots', async () => {
     let resolveAvailability!: (value: unknown) => void
     getPublicCallTypeAvailability.mockReturnValueOnce(
       new Promise((resolve) => {
@@ -634,7 +687,7 @@ describe('BookingView', () => {
     resolveAvailability({ data: availability() })
     await flushPromises()
 
-    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(14)
+    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(11)
     expect(wrapper.text()).toContain('11:30')
     expect(wrapper.text()).toContain('Звонок на 30 минут')
     expect(wrapper.find('[aria-busy="true"]').exists()).toBe(false)
@@ -672,8 +725,15 @@ describe('BookingView', () => {
     await flushPromises()
 
     expect(getPublicCallTypeAvailability).toHaveBeenCalledTimes(2)
-    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(14)
+    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(11)
     expect(wrapper.text()).toContain('В ближайшие 14 дней свободного времени нет')
+    expect(
+      wrapper
+        .findAll('[data-availability-day]')
+        .every((day) => day.attributes('disabled') !== undefined),
+    ).toBe(true)
+    await wrapper.get('[aria-label="Следующий месяц"]').trigger('click')
+    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(3)
     expect(
       wrapper
         .findAll('[data-availability-day]')
