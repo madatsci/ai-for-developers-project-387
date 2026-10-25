@@ -44,7 +44,9 @@ const calendarMonths = computed(() => {
         month: 'long',
         year: 'numeric',
         timeZone: 'UTC',
-      }).format(firstDay),
+      })
+        .format(firstDay)
+        .replace(/\s*г\.$/u, ''),
       offset,
       days: Array.from({ length: daysInMonth }, (_, index) => {
         const date = `${month}-${String(index + 1).padStart(2, '0')}`
@@ -350,7 +352,9 @@ function formatConfirmationDate(value: string) {
     month: 'long',
     year: 'numeric',
     timeZone: 'Europe/Moscow',
-  }).format(new Date(value))
+  })
+    .format(new Date(value))
+    .replace(/\s*г\.$/u, '')
 }
 
 watch(typeSlug, loadPage, { immediate: true })
