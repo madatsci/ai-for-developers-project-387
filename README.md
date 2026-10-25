@@ -70,9 +70,11 @@ docker compose down
 
 ## Деплой в Render
 
-[`render.yaml`](render.yaml) описывает Render Web Service и PostgreSQL в регионе
-Frankfurt. Render собирает корневой `Dockerfile`, передаёт приложению
-`DATABASE_URL` и `PORT`, проверяет `/api/health` и публикует сервис по HTTPS.
+[`render.yaml`](render.yaml) описывает Render Web Service в регионе Frankfurt и
+подключает его к существующей базе `calendar-of-calls-db`. Проекты 386 и 387
+используют одни таблицы и общие данные. Render собирает корневой `Dockerfile`,
+передаёт приложению `DATABASE_URL` и `PORT`, проверяет `/api/health` и публикует
+сервис по HTTPS.
 
 Для первого деплоя создайте в Render Blueprint из этого GitHub-репозитория и
 выберите ветку `main`. Последующие изменения деплоятся автоматически после
@@ -96,6 +98,8 @@ make check  # полная CI-эквивалентная проверка
 - Production-контейнер слушает `0.0.0.0:$PORT`; локальный API использует
   `HTTP_ADDR`.
 - Контейнер применяет миграции и идемпотентный seed перед каждым запуском API.
+- Проекты 386 и 387 используют одну Render PostgreSQL: изменения данных и схемы
+  из одного приложения сразу влияют на другое.
 - `make smoke-remote` создаёт реальный звонок и оставляет его в Render PostgreSQL.
 - Источник HTTP-контракта — `api/*.tsp`. Generated OpenAPI, frontend SDK и Go
   server package нельзя редактировать вручную; для их обновления используйте
