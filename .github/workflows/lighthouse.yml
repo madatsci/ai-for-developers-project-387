@@ -1,0 +1,58 @@
+name: Lighthouse
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  lhci:
+    name: Lighthouse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Install compatible Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: 137
+      - name: Run Lighthouse CI
+        run: |
+          test -n "$APP_URL" || { echo "Configure the APP_URL repository variable" >&2; exit 1; }
+          npm install --global @lhci/cli@0.15.x
+          lhci collect
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+      - name: Upload raw Lighthouse reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          include-hidden-files: true
+          if-no-files-found: error
+      - name: Create Lighthouse issue
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: openai/gpt-6.1-sol
+          use_github_token: true
+          prompt: |
+            Analyze the raw Lighthouse CI reports in .lighthouseci/ and turn them into
+            clear findings and actionable tasks. Create exactly one GitHub issue with
+            the complete results of this check. Include the measured scores, the most
+            important findings, and prioritized tasks. Do not modify the repository or
+            create a pull request.
