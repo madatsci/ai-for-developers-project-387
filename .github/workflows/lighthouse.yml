@@ -31,10 +31,16 @@ jobs:
         run: |
           test -n "$APP_URL" || { echo "Configure the APP_URL repository variable" >&2; exit 1; }
           npm install --global @lhci/cli@0.15.x
-          lhci autorun
+          lhci collect
         env:
           APP_URL: ${{ vars.APP_URL }}
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+      - name: Upload raw Lighthouse reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          if-no-files-found: error
       - name: Create Lighthouse issue
         uses: anomalyco/opencode/github@latest
         env:

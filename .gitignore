@@ -6,6 +6,7 @@ tsp-output/
 !api/tsp-output/
 !api/tsp-output/openapi.yaml
 coverage/
+.lighthouseci/
 test-results/
 playwright-report/
 *.log

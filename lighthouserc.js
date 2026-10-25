@@ -7,8 +7,5 @@ module.exports = {
         chromeFlags: '--no-sandbox',
       },
     },
-    upload: {
-      target: 'temporary-public-storage',
-    },
   },
 }
