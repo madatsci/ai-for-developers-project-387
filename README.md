@@ -81,7 +81,7 @@ Frankfurt. Render собирает корневой `Dockerfile`, передаё
 Проверка опубликованного контура:
 
 ```bash
-make smoke-remote REMOTE_SMOKE_BASE_URL=https://calendar-of-calls.onrender.com
+make smoke-remote REMOTE_SMOKE_BASE_URL=https://calendar-of-calls-387.onrender.com
 ```
 
 ## Проверки
