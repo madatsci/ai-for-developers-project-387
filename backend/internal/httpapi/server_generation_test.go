@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/httpapi/generated"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/httpapi/generated"
 )
 
 const validCreateCallBody = `{

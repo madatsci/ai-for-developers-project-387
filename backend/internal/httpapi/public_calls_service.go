@@ -21,8 +21,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/text/unicode/norm"
 
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/httpapi/generated"
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/storage"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/httpapi/generated"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/storage"
 )
 
 var (

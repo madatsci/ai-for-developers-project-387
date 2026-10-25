@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/httpapi/generated"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/httpapi/generated"
 )
 
 func TestHealth(t *testing.T) {

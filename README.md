@@ -17,8 +17,8 @@ Tailwind CSS и TypeSpec.
 Нужны Go 1.26+, Node.js 26 с npm, Docker Compose v2, GNU Make и curl.
 
 ```bash
-git clone https://github.com/madatsci/ai-for-developers-project-386.git
-cd ai-for-developers-project-386
+git clone https://github.com/madatsci/ai-for-developers-project-387.git
+cd ai-for-developers-project-387
 make setup
 make dev
 ```

@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/httpapi/generated"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/httpapi/generated"
 )
 
 const maxJSONBodyBytes = 64 * 1024

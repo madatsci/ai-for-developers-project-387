@@ -17,7 +17,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/unicode/norm"
 
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/httpapi/generated"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/httpapi/generated"
 )
 
 type adminCallsService struct {

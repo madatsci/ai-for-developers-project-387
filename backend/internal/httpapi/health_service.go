@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/madatsci/ai-for-developers-project-386/backend/internal/httpapi/generated"
+	"github.com/madatsci/ai-for-developers-project-387/backend/internal/httpapi/generated"
 )
 
 const healthCheckTimeout = 2 * time.Second
