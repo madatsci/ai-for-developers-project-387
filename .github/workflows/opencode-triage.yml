@@ -6,6 +6,7 @@ on:
 
 jobs:
   triage:
+    if: github.event.issue.user.type != 'Bot'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
