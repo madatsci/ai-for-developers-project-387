@@ -166,7 +166,9 @@ describe('App', () => {
     expect(getPublicCallTypeAvailability).toHaveBeenCalledWith({
       path: { slug: 'zvonok-na-15-minut' },
     })
-    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(14)
+    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(11)
+    await wrapper.get('[aria-label="Следующий месяц"]').trigger('click')
+    expect(wrapper.findAll('[data-availability-day]')).toHaveLength(3)
     wrapper.unmount()
   })
 })
