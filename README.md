@@ -4,8 +4,8 @@
 
 Интегрируйте работу агентов в GitHub проект
 
-- [Публичное приложение](https://calendar-of-calls.onrender.com)
-- [Административный интерфейс](https://calendar-of-calls.onrender.com/admin/calls)
+- [Публичное приложение](https://calendar-of-calls-387.onrender.com)
+- [Административный интерфейс](https://calendar-of-calls-387.onrender.com/admin/calls)
 - [Программа Хекслета](https://ru.hexlet.io/programs/ai-for-developers)
 - [Описание проекта](https://files.hexlet.app/a/2ipc5m)
 
