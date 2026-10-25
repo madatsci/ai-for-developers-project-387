@@ -6,8 +6,10 @@ on:
 
 jobs:
   review:
-    # Automated reviews support same-repository branches only.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Automated reviews support same-repository branches and human authors only.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.type != 'Bot'
     concurrency:
       group: opencode-review-${{ github.event.pull_request.number }}
       cancel-in-progress: true
