@@ -40,6 +40,7 @@ jobs:
         with:
           name: lighthouse-reports
           path: .lighthouseci/
+          include-hidden-files: true
           if-no-files-found: error
       - name: Create Lighthouse issue
         uses: anomalyco/opencode/github@latest
