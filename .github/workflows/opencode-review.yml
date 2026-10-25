@@ -6,6 +6,11 @@ on:
 
 jobs:
   review:
+    # Automated reviews support same-repository branches only.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    concurrency:
+      group: opencode-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       contents: read
